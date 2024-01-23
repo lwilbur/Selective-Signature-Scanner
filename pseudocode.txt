@@ -1,0 +1,28 @@
+FILE 1 - RUNNER
+func main:
+    yara_setup()
+
+    test_database = load(t_filename)
+    rule_database = load(r_filename)
+
+    perc_90 = calc90PercentileLength(rule_database);
+    headTailScan(test_database, rule_database, perc_90)
+    yara_shutoff()
+
+FILE 2 - 3S
+func calc90PercentileLength(rule_database):
+    sort(rule_database)                        # by length
+    idx_90 = ceiling(len(rule_database) * .9)  # sometimes slightly > 90th perc
+    return len(rule_database[idx_90].signature)
+
+func exciseBeginningEnd(file, perc_90)
+    contents[] = file.load()
+    headTail[2*perc_90+1];
+    memcpy contents[:perc_90] into headTail[:perc_90]
+    memcpy contents[-perc_90:] into headTail[perc_90+1:]
+    return headTail
+
+func headTailScan(test_database, test_database, scanLen)
+    for file in test_database:
+        subset = exciseBeginningEnd(file, scanLen)
+        invoke yara rule collection on subset
