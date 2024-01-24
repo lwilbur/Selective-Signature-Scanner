@@ -15,14 +15,14 @@ func calc90PercentileLength(rule_database):
     idx_90 = ceiling(len(rule_database) * .9)  # sometimes slightly > 90th perc
     return len(rule_database[idx_90].signature)
 
-func exciseBeginningEnd(file, perc_90)
+func exciseBeginningEnd(file, numChars)
     contents[] = file.load()
-    headTail[2*perc_90+1];
-    memcpy contents[:perc_90] into headTail[:perc_90]
-    memcpy contents[-perc_90:] into headTail[perc_90+1:]
+    headTail[2*numChars+1];
+    memcpy contents[:numChars] into headTail[:numChars]
+    memcpy contents[-numChars:] into headTail[numChars+1:]
     return headTail
 
-func headTailScan(test_database, test_database, scanLen)
+func headTailScan(test_database, test_database, numChars)
     for file in test_database:
-        subset = exciseBeginningEnd(file, scanLen)
+        subset = exciseBeginningEnd(file, numChars)
         invoke yara rule collection on subset

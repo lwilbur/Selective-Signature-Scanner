@@ -11,22 +11,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int calc90PercentileLength(char rule_database[]);
+
 /*
- * @brief Excises the beginning and end of filename, saving into a new file.
+ * @brief Excises the beginning and end of file, returning it in an array.
  *
- * Calculates a number of characters, depending of the size of signature, to
- * be cut from the beginning and end a file. Then, loads the file identified
- * by filename, saves those beginning and ending characters into a new file.
- *
- * @param inFilename string name of the file from which portions will be cut
- * @param outFilename string name of the file to which excised portions will
- *                      be output
- * @param signature string containing the signature being searched for
- * @return 0 on success, 1 on error.
+ * @param filename
+ * @param numChars
  */
-int exciseBeginningEnd(char inFilename[], 
-                       char outFilename[],
-                       char signature[]);
+char* exciseHeadTail(char filename[], int numChars);
 
 /*
  * @brief Selects sections of a file to search, based on an ML model.
@@ -34,7 +27,7 @@ int exciseBeginningEnd(char inFilename[],
  * Will be implemented once exciseBeginningEnd has been completed and
  * comprehensively tested.
  */
-int smartExcise(char filename[]);
+int smartExcise();
 
 /*
  * @brief Runs Yara on a selected file.
@@ -45,6 +38,6 @@ int smartExcise(char filename[]);
  * @param filename string name of file to be scanned
  * @param yaraFile string name of Yara rule file to be used
  */
-int invokeYaraOnFile(char filename[], char yaraFile[]);
+int invokeYaraOnFile(char scan[], char yaraFilename[]);
 
 #endif /*_3S_H*/
