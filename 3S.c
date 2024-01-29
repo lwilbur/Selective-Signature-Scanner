@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "/opt/homebrew/Cellar/yara/4.3.2_1/include/yara.h"
 
 int calc90PercentileLength(char rule_database[]) {
     return 0;
@@ -55,7 +56,7 @@ char* exciseHeadTail(char filename[], int numChars) {
 int smartExcise();
 
 /*
- * @brief Runs Yara on a selected file.
+ * @brief Runs Yara on a selected buffer.
  *
  * Runs Yara on a selected file -- intended for use on a file created by an
  * excise function.
@@ -63,5 +64,5 @@ int smartExcise();
  * @param filename string name of file to be scanned
  * @param yaraFile string name of Yara rule file to be used
  */
-int invokeYaraOnFile(char scan[], char yaraFilename[]);
+int invokeYaraOnBuffer(char scan[], char yaraFilename[]);
 
