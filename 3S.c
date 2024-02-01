@@ -1,9 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "/opt/homebrew/Cellar/yara/4.3.2_1/include/yara.h"
+#include "yara.h"
 
-int calc90PercentileLength(char rule_database[]) {
+/*
+ *
+ *
+ * @param compiler YR_COMPILER which has already had a rule file added to it
+ * @return the 90th percentile length on success, -1 on error
+ */
+int calc90PercentileLength(YR_RULES* rules) {
+    assert(rules != NULL);
+
+    // Cycle through rules, save len of each's longest string into a list
+    YR_RULE* rule;
+
+    /* TODO: shift to callback function
+    yr_rules_foreach(rules, rule) {
+        printf("\n\nRULE");
+        // Cycle through strings for each rule, calculating the longest
+        YR_STRING* string;
+        int longestLen = 0;
+
+        /* TODO: shift to a callback function
+        yr_strings_foreach(rule, string) {
+            int length = strlen(string);
+            if (length > longestLen)
+                longestLen = length;
+            printf("\tSTRING: %s\n", string)
+        }
+        */
+    }
+    */
+
+    // Clear memory
+    yr_rules_destroy(rules);
+
     return 0;
 }
 
@@ -64,5 +96,15 @@ int smartExcise();
  * @param filename string name of file to be scanned
  * @param yaraFile string name of Yara rule file to be used
  */
-int invokeYaraOnBuffer(char scan[], char yaraFilename[]);
+int invokeYaraOnBuffer(char scan[], size_t scan_len, YR_RULES* rules) {
+    // scan the given buffer
+    yaraCallRet = yr_rules_scan_mem(rules,      // Rule file
+                                    scan,       // Buffer to scan
+                                    scan_len,   // Buffer length
+                                    0,          // Flags
+                                    NULL,       // TODO: write callback function
+                                    NULL,       // TODO: look into user data
+                                    1000);      // Timeout
+    return 0;
+}
 
