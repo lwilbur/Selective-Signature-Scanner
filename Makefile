@@ -13,5 +13,5 @@ clean :
 	rm -rf $(toolName) $(toolName).dSYM
 
 test : $(toolName)
-	./$(toolName)
+	./$(toolName) MALW_Furtim.yar targetDirectory
 

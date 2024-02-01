@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int calc90PercentileLength(char rule_database[]);
+int calc90PercentileLength(YR_COMPILER* compiler);
 
 /*
  * @brief Excises the beginning and end of file, returning it in an array.
