@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int calc90PercentileLength(YR_COMPILER* compiler);
+int calcNPercentileLength(YR_RULES* rules, int n);
 
 /*
  * @brief Excises the beginning and end of file, returning it in an array.
@@ -40,4 +40,6 @@ int smartExcise();
  */
 int invokeYaraOnFile(char scan[], char yaraFilename[]);
 
+int rule_callback(YR_RULE* rule, void* user_data);
+int string_callback(int string_id, const char* string, void* user_data);
 #endif /*_3S_H*/

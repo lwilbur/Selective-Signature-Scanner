@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     
+    // TODO: shift compiler creation and rule reading into 3S function
     // Set up YARA compiler
     YR_COMPILER* compiler;
     int compRet = yr_compiler_create(&compiler);
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Send rules to calc90PercentileLength
-    int percentile90 = calc90PercentileLength(compiler);
+    int percentile90 = calcNPercentileLength(rules, 90);
 
     // Shut down YARA, destroy compiler, close file, and exit
     yr_rules_destroy(rules);

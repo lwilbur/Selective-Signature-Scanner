@@ -4,40 +4,77 @@
 #include "yara.h"
 
 /*
+ * Integer comparison function for use with qsort 
+ * stackoverflow.com/questions/59890582
+ */
+int cmp_int(const void *va, const void *vb)
+{
+  int a = *(int *)va, b = *(int *) vb;
+  return a < b ? -1 : a > b ? +1 : 0;
+}
+
+/*
  *
  *
  * @param compiler YR_COMPILER which has already had a rule file added to it
  * @return the 90th percentile length on success, -1 on error
  */
-int calc90PercentileLength(YR_RULES* rules) {
+int calcNPercentileLength(YR_RULES* rules, int n) {
     assert(rules != NULL);
+    assert(n > 0 and n <= 100);
 
-    // Cycle through rules, save len of each's longest string into a list
-    YR_RULE* rule;
-
-    /* TODO: shift to callback function
+    /* Determine number of strings in set of rules */
+    int numStr = 0;
+    // Step through each rule
+    YR_RULE* rule = NULL;
     yr_rules_foreach(rules, rule) {
-        printf("\n\nRULE");
-        // Cycle through strings for each rule, calculating the longest
-        YR_STRING* string;
-        int longestLen = 0;
-
-        /* TODO: shift to a callback function
-        yr_strings_foreach(rule, string) {
-            int length = strlen(string);
-            if (length > longestLen)
-                longestLen = length;
-            printf("\tSTRING: %s\n", string)
+        // Step through each string in the rule
+        YR_STRING* string = NULL;
+        yr_rule_strings_foreach(rule, string) {
+            numStr++;
         }
-        */
     }
+
+    // Ensure that at least one signature exists in the file
+    assert(numStr > 0);
+
+    /* Add the length of each signature string into a list */
+    int lenList[numStr]; 
+    int idx = 0;
+    // Step through each rule
+    yr_rules_foreach(rules, rule) {
+        // Step through each string in the rule
+        YR_STRING* string = NULL;
+        yr_rule_strings_foreach(rule, string) {
+            lenList[idx] = string->length;
+            idx++;
+        }
+    }
+
+    /* DEBUG
+    printf("CREATED LIST OF LENGTHS:\n{ ");
+    for (int i = 0; i < numStr; i++)
+        printf("%d ", lenList[i]);
+    printf("}\n");
     */
 
-    // Clear memory
-    yr_rules_destroy(rules);
+    // Sort the signature lengths in increasing order
+    qsort(lenList, numStr, sizeof lenList[0], cmp_int);
 
-    return 0;
+    /* DEBUG
+    printf("SORTED LIST OF LENGTHS:\n{ ");
+    for (int i = 0; i < numStr; i++)
+        printf("%d ", lenList[i]);
+    printf("}\n");
+    */
+
+    // Calculate and return the 90th percentile
+    // TODO: allow arbitrary nth percentile, handle edge case of 0th percentile
+    double percent = (double)n / 100;
+    int nPercentileIdx = ceil(percent * numStr) - 1;
+    return lenList[nPercentileIdx];
 }
+
 
 
 /*
@@ -98,13 +135,13 @@ int smartExcise();
  */
 int invokeYaraOnBuffer(char scan[], size_t scan_len, YR_RULES* rules) {
     // scan the given buffer
-    yaraCallRet = yr_rules_scan_mem(rules,      // Rule file
-                                    scan,       // Buffer to scan
-                                    scan_len,   // Buffer length
-                                    0,          // Flags
-                                    NULL,       // TODO: write callback function
-                                    NULL,       // TODO: look into user data
-                                    1000);      // Timeout
+    int yaraCallRet = yr_rules_scan_mem(rules,      // Rule file
+                                        scan,       // Buffer to scan
+                                        scan_len,   // Buffer length
+                                        0,          // Flags
+                                        NULL,       // TODO: write callback function
+                                        NULL,       // TODO: look into user data
+                                        1000);      // Timeout
     return 0;
 }
 

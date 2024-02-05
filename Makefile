@@ -3,6 +3,7 @@ toolName = 3S
 mainName = cli
 header   = -I/opt/homebrew/Cellar/yara/4.3.2_1/include
 libs     = -L/opt/homebrew/Cellar/yara/4.3.2_1/lib -lyara
+yaraDir  = yara_test_files
 
 .PHONY : clean test 
 
@@ -13,5 +14,7 @@ clean :
 	rm -rf $(toolName) $(toolName).dSYM
 
 test : $(toolName)
-	./$(toolName) MALW_Furtim.yar targetDirectory
+	./$(toolName) $(yaraDir)/MALW_Furtim.yar targetDirectory
 
+test2 : $(toolName)
+	./$(toolName) $(yaraDir)/testRule.yar targetDirectory
