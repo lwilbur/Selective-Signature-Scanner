@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "yara.h"
 #include "3S.h"
 
@@ -59,16 +60,20 @@ int main(int argc, char* argv[]) {
     // Send rules to calc90PercentileLength
     int percentile90 = calcNPercentileLength(rules, 90);
 
+    // Test on the head and tail
+    // TODO: update to deal w/ dir instead of just a file
+    bool matchFound = headTailScan(dirToScan, rules, percentile90);
+    printf("Scanning [%d] char head and tail of '%s'...\n\tMatch found: ", 
+            percentile90, 
+            dirToScan);
+    if (matchFound) printf("YES\n");
+    else printf("NO\n");
+
     // Shut down YARA, destroy compiler, close file, and exit
     yr_rules_destroy(rules);
     yr_compiler_destroy(compiler);
     yr_finalize();
     fclose(yaraRuleFile);
-
-    // DEBUG
-    printf("Hello World\n");
-    exciseHeadTail("testfile", 5);
-    printf("90th percentile is: %d\n", percentile90);
 
     exit(0);
 }
