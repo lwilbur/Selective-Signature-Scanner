@@ -114,7 +114,7 @@ char* exciseHeadTail(char filename[], int numChars) {
     headTail[2 * numChars] = '\0';
 
     // DEBUG 
-    printf("%d head/tail characters: %s\n", numChars, headTail);
+    // printf("%d head/tail characters: %s\n", numChars, headTail);
 
     return headTail;
 }
@@ -137,6 +137,8 @@ int buffer_scan_callback(YR_SCAN_CONTEXT* context,
     // use user_data to track if a match if found
     if (message == CALLBACK_MSG_RULE_MATCHING)
         *((int*)user_data) = true;
+
+    return CALLBACK_CONTINUE;
 }
 
 
@@ -151,21 +153,18 @@ int buffer_scan_callback(YR_SCAN_CONTEXT* context,
  * @return 1 if match, 0 if no match
  */
 bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
-    YR_SCAN_CONTEXT* scan_context;
     // scan the given buffer
     bool matchFound = false;
-    int yaraCallRet = yr_rules_scan_mem(rules,                  // Rule file
-                                        scan,                   // Buffer to scan
-                                        scanLen,                // Buffer length
-                                        0,                      // Flags
-                                        buffer_scan_callback,   // callback
-                                        &matchFound,            // user data
-                                        1000);                  // Timeout
+    yr_rules_scan_mem(rules,                  // Rule file
+                      (uint8_t*)scan,         // Buffer to scan
+                      scanLen,                // Buffer length
+                      0,                      // Flags
+                      buffer_scan_callback,   // callback -- fxn called by scan
+                      &matchFound,            // user data -- true if match
+                      1000);                  // Timeout
 
     // If matchFound has been updated to true, a match was made in scan
-    if (matchFound)
-        return true;
-
+    if (matchFound) return true;
     return false;
 }
 
