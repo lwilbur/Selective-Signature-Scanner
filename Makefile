@@ -14,7 +14,4 @@ clean :
 	rm -rf $(toolName) $(toolName).dSYM
 
 test : $(toolName)
-	./$(toolName) $(yaraDir)/MALW_Furtim.yar targetDirectory
-
-test2 : $(toolName)
-	./$(toolName) $(yaraDir)/testRule.yar $(yaraDir)/testRuleTarget.txt
+	./$(toolName) $(yaraDir)/testRule.yar $(yaraDir)
