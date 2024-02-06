@@ -99,7 +99,7 @@ char* exciseHeadTail(char filename[], int numChars) {
     // TODO: consider whether binary files require a special case
 
     // Allocate memory for the characters
-    char* headTail = malloc(numChars * 2 + 1);  // +1 for \0
+    char* headTail = malloc(numChars * 2 + 2);  // +1 for \0, +1 for \n at EOF
     assert(headTail != NULL);
     
     // Read the first n characters
@@ -108,9 +108,9 @@ char* exciseHeadTail(char filename[], int numChars) {
     fread(headTail, 1, numChars, file);
 
     // Read the last n characters, appending to those already in array
-    // NB: for text files, newline will be read
-    fseek(file, -numChars, SEEK_END);
-    fread(&headTail[numChars], 1, numChars, file);
+    // NB: for text files, newline will be read, so additional char read at end
+    fseek(file, -(numChars + 1), SEEK_END);
+    fread(&headTail[numChars], 1, numChars + 1, file);
     headTail[2 * numChars] = '\0';
 
     // DEBUG 
@@ -157,7 +157,7 @@ bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
     bool matchFound = false;
     yr_rules_scan_mem(rules,                  // Rule file
                       (uint8_t*)scan,         // Buffer to scan
-                      scanLen,                // Buffer length
+                      scanLen * 2 + 1,        // Buffer length
                       0,                      // Flags
                       buffer_scan_callback,   // callback -- fxn called by scan
                       &matchFound,            // user data -- true if match
