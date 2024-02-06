@@ -17,4 +17,4 @@ test : $(toolName)
 	./$(toolName) $(yaraDir)/MALW_Furtim.yar targetDirectory
 
 test2 : $(toolName)
-	./$(toolName) $(yaraDir)/testRule.yar targetDirectory
+	./$(toolName) $(yaraDir)/testRule.yar $(yaraDir)/testRuleTarget.txt

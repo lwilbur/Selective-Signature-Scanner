@@ -1,7 +1,10 @@
+#include "yara.h"
+#include "3S.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "yara.h"
+#include <stdbool.h>
+
 
 /*
  * Integer comparison function for use with qsort 
@@ -13,6 +16,7 @@ int cmp_int(const void *va, const void *vb)
   return a < b ? -1 : a > b ? +1 : 0;
 }
 
+
 /*
  *
  *
@@ -21,7 +25,7 @@ int cmp_int(const void *va, const void *vb)
  */
 int calcNPercentileLength(YR_RULES* rules, int n) {
     assert(rules != NULL);
-    assert(n > 0 and n <= 100);
+    assert(n > 0 && n <= 100);
 
     /* Determine number of strings in set of rules */
     int numStr = 0;
@@ -76,7 +80,6 @@ int calcNPercentileLength(YR_RULES* rules, int n) {
 }
 
 
-
 /*
  * @brief Excises the beginning and end of file, returning it in an array.
  *
@@ -116,6 +119,7 @@ char* exciseHeadTail(char filename[], int numChars) {
     return headTail;
 }
 
+
 /*
  * @brief Selects sections of a file to search, based on an ML model.
  *
@@ -123,6 +127,18 @@ char* exciseHeadTail(char filename[], int numChars) {
  * comprehensively tested.
  */
 int smartExcise();
+
+
+int buffer_scan_callback(YR_SCAN_CONTEXT* context,
+                         int message,
+                         void* message_data,
+                         void* user_data) {
+
+    // use user_data to track if a match if found
+    if (message == CALLBACK_MSG_RULE_MATCHING)
+        *((int*)user_data) = true;
+}
+
 
 /*
  * @brief Runs Yara on a selected buffer.
@@ -132,16 +148,31 @@ int smartExcise();
  *
  * @param filename string name of file to be scanned
  * @param yaraFile string name of Yara rule file to be used
+ * @return 1 if match, 0 if no match
  */
-int invokeYaraOnBuffer(char scan[], size_t scan_len, YR_RULES* rules) {
+bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
+    YR_SCAN_CONTEXT* scan_context;
     // scan the given buffer
-    int yaraCallRet = yr_rules_scan_mem(rules,      // Rule file
-                                        scan,       // Buffer to scan
-                                        scan_len,   // Buffer length
-                                        0,          // Flags
-                                        NULL,       // TODO: write callback function
-                                        NULL,       // TODO: look into user data
-                                        1000);      // Timeout
-    return 0;
+    bool matchFound = false;
+    int yaraCallRet = yr_rules_scan_mem(rules,                  // Rule file
+                                        scan,                   // Buffer to scan
+                                        scanLen,                // Buffer length
+                                        0,                      // Flags
+                                        buffer_scan_callback,   // callback
+                                        &matchFound,            // user data
+                                        1000);                  // Timeout
+
+    // If matchFound has been updated to true, a match was made in scan
+    if (matchFound)
+        return true;
+
+    return false;
+}
+
+
+bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
+    char* scanBuffer = exciseHeadTail(filename, scanLen);
+    bool matchFound = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
+    return matchFound;
 }
 

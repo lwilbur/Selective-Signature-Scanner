@@ -38,8 +38,8 @@ int smartExcise();
  * @param filename string name of file to be scanned
  * @param yaraFile string name of Yara rule file to be used
  */
-int invokeYaraOnFile(char scan[], char yaraFilename[]);
+bool invokeYaraOnBuffer(char scan[], size_t scan_len, YR_RULES* rules);
 
-int rule_callback(YR_RULE* rule, void* user_data);
-int string_callback(int string_id, const char* string, void* user_data);
+bool headTailScan(char filename[], YR_RULES* rules, size_t scan_len);
+
 #endif /*_3S_H*/
