@@ -13,22 +13,29 @@ int main(int argc, char* argv[]) {
     }
 
     // Load arguments
-    char* yaraRuleFilename = argv[1];
-    char* dirToScan = argv[2];
+    char* ruleDirToScan   = argv[1];
+    char* targetDirToScan = argv[2];
 
     // Load file from argument
-    FILE* yaraRuleFile = fopen(yaraRuleFilename, "r");
-    if (yaraRuleFile == NULL) {
-        fprintf(stderr, "Opening file '%s' failed. Exiting...\n", yaraRuleFilename);
+//    FILE* yaraRuleFile = fopen(yaraRuleFilename, "r");
+//    if (yaraRuleFile == NULL) {
+//        fprintf(stderr, "Opening file '%s' failed. Exiting...\n", yaraRuleFilename);
+//        exit(1);
+//    }
+
+    // Load rule directory and target directory from arguments
+    // code derived from stackoverflow.com/questions/4204666
+    DIR* dRule;
+    dRule = opendir(ruleDirToScan);
+    if (dRule == NULL) {
+        fprintf(stderr, "Rule directory access failed. Exiting...\n");
         exit(1);
     }
 
-    // Load directory from argument
-    // code derived from stackoverflow.com/questions/4204666
-    DIR* d;
-    d = opendir(dirToScan);
-    if (d == NULL) {
-        fprintf(stderr, "Directory access failed. Exiting...\n");
+    DIR* dTarget;
+    dTarget = opendir(targetDirToScan);
+    if (dTarget == NULL) {
+        fprintf(stderr, "Target directory access failed. Exiting...\n");
         exit(1);
     }
     
@@ -47,17 +54,45 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // Read rule file into YARA compiler
-    int numErrs = yr_compiler_add_file(compiler, 
-                                       yaraRuleFile, 
-                                       NULL, 
-                                       yaraRuleFilename);
-    if (numErrs != 0) {
-        fprintf(stderr,
-                "YARA rule file '%s' processing failed with %d errors. Exiting...", 
-                yaraRuleFilename, numErrs);
-        exit(1);
+    /* Read directory of rule files into YARA compiler */
+    // Loop through each rule file in given directory
+    struct dirent* ruleDir;
+    printf("BEGIN READING OF RULE FILES\n");
+    while ((ruleDir = readdir(dRule)) != NULL) {
+        char* dirFilename = ruleDir->d_name;
+        if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
+            // reconstruct full filepath to file
+            char fullFilename[256];
+            int success = sprintf(fullFilename, "%s/%s", ruleDirToScan, dirFilename);
+            assert(success > -1);  // ensure sprintf succeeded
+            printf("\tReading rule file '%s'\n", fullFilename);
+            
+            // Attempt to open the file
+            FILE* yaraRuleFile = fopen(fullFilename, "r");
+            if (yaraRuleFile == NULL) {
+                fprintf(stderr, "Opening rule file '%s' failed. Exiting...\n", 
+                        fullFilename);
+                exit(1);
+            }
+
+            // Attempt to read the file into the YARA compiler
+            int numErrs = yr_compiler_add_file(compiler, 
+                                               yaraRuleFile, 
+                                               NULL, 
+                                               fullFilename);
+            if (numErrs != 0) {
+                fprintf(stderr,
+                        "YARA rule file '%s' processing failed with %d errors. Exiting...\n", 
+                        fullFilename, numErrs);
+                exit(1);
+            }
+
+            // Close the file, move to the next in the directory
+            fclose(yaraRuleFile);
+        }
     }
+    fprintf(stderr, "\n");
+    closedir(dRule);
 
     // Pull compiled rules from the compiler
     YR_RULES* rules;
@@ -72,31 +107,30 @@ int main(int argc, char* argv[]) {
 
     /* RUN SIGNATURE SCANS TESTS */
     // Loop through each file in given directory
-    struct dirent* dir;
+    struct dirent* targetDir;
     printf("BEGIN SCAN OF [%d] CHARACTER HEADERS AND FOOTERS:\n", percentile90);
-    while ((dir = readdir(d)) != NULL) {
+    while ((targetDir = readdir(dTarget)) != NULL) {
         // Run headTailScan on each file (ignore '.' and '..' files)
-        char* dirFilename = dir->d_name;
+        char* dirFilename = targetDir->d_name;
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
             char fullFilename[256];
-            int success = sprintf(fullFilename, "%s/%s", dirToScan, dirFilename);
+            fflush(stdout);
+            int success = sprintf(fullFilename, "%s/%s", targetDirToScan, dirFilename);
             assert(success > -1);  // ensure sprintf succeeded
             printf("\tScanning '%s' .....", fullFilename);
             
             bool matchFound = headTailScan(fullFilename, rules, percentile90);
             if (matchFound) printf(" SIGNATURE MATCH\n");
             else            printf("\n");
-
         }
     }
-    closedir(d);
+    closedir(dTarget);
     
-    // Shut down YARA, destroy compiler, close file, and exit
+    // Shut down YARA, destroy compiler, and exit
     yr_rules_destroy(rules);
     yr_compiler_destroy(compiler);
     yr_finalize();
-    fclose(yaraRuleFile);
 
     exit(0);
 }

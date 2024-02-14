@@ -16,7 +16,6 @@ int cmp_int(const void *va, const void *vb)
   return a < b ? -1 : a > b ? +1 : 0;
 }
 
-
 /*
  *
  *
