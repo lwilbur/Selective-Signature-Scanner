@@ -15,12 +15,12 @@ clean :
 	rm -rf $(toolName) $(toolName).dSYM
 
 test : $(toolName)
-	./$(toolName) $(yaraDir)/testRule.yar $(yaraDir)
+	./$(toolName) $(yaraDir)/rules $(yaraDir)/scan
 
 testSuite : $(toolName)
-	@echo "\nRUNNING TEST RULE ON MATCH DIRECTORY --- ALL FILES SHOULD MATCH"
-	./$(toolName) $(testDir)/testSuiteRule.yar $(testDir)/yara_test_suite_match
+	@echo "\nRUNNING TEST RULES ON MATCH DIRECTORY --- ALL FILES SHOULD MATCH"
+	./$(toolName) $(testDir)/rules $(testDir)/match
 
-	@echo "\nRUNNING TEST RULE ON NOMATCH DIRECTORY --- NO FILES SHOULD MATCH"
-	./$(toolName) $(testDir)/testSuiteRule.yar $(testDir)/yara_test_suite_nomatch
+	@echo "\nRUNNING TEST RULES ON NOMATCH DIRECTORY --- NO FILES SHOULD MATCH"
+	./$(toolName) $(testDir)/rules $(testDir)/nomatch
 
