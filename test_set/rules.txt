@@ -1,0 +1,10 @@
+# Rules Used as Our Dataset
+## Source
+All rules are sourced from YARAify's YARAhub service, selected from among the available rules with the most matched files.
+
+
+## Rules
+| Rule | UUID | # Matches (at time of list creation) |
+| ---- | ---- | --------------------------------- |
+| unpacked_qbot | a2ad2850-fa12-469f-947a-9dbf79ffcc51 | 106'768 |
+
