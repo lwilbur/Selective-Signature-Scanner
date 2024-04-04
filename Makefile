@@ -1,8 +1,8 @@
 # variables
 toolName = 3S
 mainName = cli
-header   = -I/opt/homebrew/Cellar/yara/4.3.2_1/include
-libs     = -L/opt/homebrew/Cellar/yara/4.3.2_1/lib -lyara
+header   = -I/opt/homebrew/Cellar/yara/4.5.0/include
+libs     = -L/opt/homebrew/Cellar/yara/4.5.0/lib -lyara
 yaraDir  = yara_test_files
 testDir  = yara_test_suite
 
@@ -14,10 +14,8 @@ $(toolName) : $(mainName).c $(toolName).h $(toolName).c
 clean :
 	rm -rf $(toolName) $(toolName).dSYM
 
-test : $(toolName)
-	./$(toolName) $(yaraDir)/rules $(yaraDir)/scan
 
-testSuite : $(toolName)
+test: $(toolName)
 	@echo "\nRUNNING TEST RULES ON MATCH DIRECTORY --- ALL FILES SHOULD MATCH"
 	./$(toolName) $(testDir)/rules $(testDir)/match
 
