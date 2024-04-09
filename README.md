@@ -5,9 +5,8 @@ The Selective Signature Scanner ("3S") selectively scans portions of files suspe
 ## Steps
 - [x] Implement functions necessary to use YARA's C API, loading YARA rule files and scanning a directory of files.
 - [x] Implement functions necessary to isolate the head and tail of a file.
-- [ ] Collect a dataset of YARA rules and malware, run comprehensive tests on change in runtime and malware detection accuracy for various size headers and footers.
-- [ ] Implement an ML model to select which parts of a file to scan for signatures.
-- [ ] Run comprehensive tests on change in runtime and malware detection accuracy using the ML model's predictions.
+- [ ] Collect a dataset of YARA rules and malware
+- [ ] Test change in runtime and malware detection accuracy for various size headers and footers.
 
 ## Background
 * This is an undergraduate thesis, completed for COSC 99.
