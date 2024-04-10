@@ -16,13 +16,6 @@ int main(int argc, char* argv[]) {
     char* ruleDirToScan   = argv[1];
     char* targetDirToScan = argv[2];
 
-    // Load file from argument
-//    FILE* yaraRuleFile = fopen(yaraRuleFilename, "r");
-//    if (yaraRuleFile == NULL) {
-//        fprintf(stderr, "Opening file '%s' failed. Exiting...\n", yaraRuleFilename);
-//        exit(1);
-//    }
-
     // Load rule directory and target directory from arguments
     // code derived from stackoverflow.com/questions/4204666
     DIR* dRule;

@@ -17,64 +17,56 @@ int cmp_int(const void *va, const void *vb)
 }
 
 /*
+ * Calculate the number of characters in the n-th percentile longest rule in
+ * a YR_RULES instance. The 'length' of a rule is the sum of the lengths of 
+ * all the strings considered by the rule.
  *
- *
- * @param compiler YR_COMPILER which has already had a rule file added to it
  * @return the 90th percentile length on success, -1 on error
  */
 int calcNPercentileLength(YR_RULES* rules, int n) {
     assert(rules != NULL);
     assert(n > 0 && n <= 100);
 
-    /* Determine number of strings in set of rules */
-    int numStr = 0;
+    /* Determine number of rules */
+    int numRules = 0;
     // Step through each rule
     YR_RULE* rule = NULL;
     yr_rules_foreach(rules, rule) {
-        // Step through each string in the rule
-        YR_STRING* string = NULL;
-        yr_rule_strings_foreach(rule, string) {
-            numStr++;
-        }
+        numRules++;
     }
 
-    // Ensure that at least one signature exists in the file
-    assert(numStr > 0);
+    // Ensure that at least one rule exists in the file
+    assert(numRules > 0);
 
-    /* Add the length of each signature string into a list */
-    int lenList[numStr]; 
+    /* Sum the lengths of each rule's strings and store them in a list */
+    int lenList[numRules];  
+    memset(lenList, 0, numRules);  // initialize all values to 0
+    
     int idx = 0;
     // Step through each rule
     yr_rules_foreach(rules, rule) {
         // Step through each string in the rule
         YR_STRING* string = NULL;
         yr_rule_strings_foreach(rule, string) {
-            lenList[idx] = string->length;
-            idx++;
+            // Sum rule's string lengths
+            lenList[idx] += string->length;
         }
+        idx++;
     }
 
-    /* DEBUG
-    printf("CREATED LIST OF LENGTHS:\n{ ");
-    for (int i = 0; i < numStr; i++)
-        printf("%d ", lenList[i]);
-    printf("}\n");
-    */
-
     // Sort the signature lengths in increasing order
-    qsort(lenList, numStr, sizeof lenList[0], cmp_int);
+    qsort(lenList, numRules, sizeof lenList[0], cmp_int);
 
     /* DEBUG
     printf("SORTED LIST OF LENGTHS:\n{ ");
-    for (int i = 0; i < numStr; i++)
+    for (int i = 0; i < numRules; i++)
         printf("%d ", lenList[i]);
     printf("}\n");
     */
 
     // Calculate and return the 90th percentile
-    // TODO: allow arbitrary nth percentile, handle edge case of 0th percentile
     double percent = (double)n / 100;
-    int nPercentileIdx = ceil(percent * numStr) - 1;
+    int nPercentileIdx = ceil(percent * numRules) - 1;
     return lenList[nPercentileIdx];
 }
 
