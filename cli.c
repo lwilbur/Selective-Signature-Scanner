@@ -4,8 +4,10 @@
 #include <stdbool.h>
 #include "yara.h"
 #include "3S.h"
+#include "cli.h"
 
 int main(int argc, char* argv[]) {
+    /************ INPUT VERIFICATION ************/
     // Confirm proper input
     if (argc != 3) {
         fprintf(stderr, "USAGE: 3S YARA_RULE_FILE TARGET_DIR\n");
@@ -47,10 +49,12 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+
+    /************ LOAD RULE FILES ************/
     /* Read directory of rule files into YARA compiler */
     // Loop through each rule file in given directory
-    struct dirent* ruleDir;
     printf("BEGIN READING OF RULE FILES\n");
+    struct dirent* ruleDir;
     while ((ruleDir = readdir(dRule)) != NULL) {
         char* dirFilename = ruleDir->d_name;
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
@@ -95,35 +99,104 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // Send rules to calcNPercentileLength to get 90th percentile
-    int percentile90 = calcNPercentileLength(rules, 90);
+    
+    /************ RUNNING SCAN TESTS ************/
+    bool print = true;   // debug print of files as scan progresses
 
-    /* RUN SIGNATURE SCANS TESTS */
+    /* FULL FILE TEST */
     // Loop through each file in given directory
     struct dirent* targetDir;
-    printf("BEGIN SCAN OF [%d] CHARACTER HEADERS AND FOOTERS:\n", percentile90);
+    printf("BEGIN SCAN OF FULL FILES:\n");
+    int numMatch = 0;
     while ((targetDir = readdir(dTarget)) != NULL) {
         // Run headTailScan on each file (ignore '.' and '..' files)
         char* dirFilename = targetDir->d_name;
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
             char fullFilename[256];
-            fflush(stdout);
             int success = sprintf(fullFilename, "%s/%s", targetDirToScan, dirFilename);
             assert(success > -1);  // ensure sprintf succeeded
-            printf("\tScanning '%s' .....", fullFilename);
+
+            if (print) printf("\tScanning '%s' ..... ", fullFilename);
             
-            bool matchFound = headTailScan(fullFilename, rules, percentile90);
-            if (matchFound) printf(" SIGNATURE MATCH\n");
-            else            printf("\n");
+            // Scan
+            bool matchFound = fullScan(fullFilename, rules);
+
+            // Track success/failure of scan
+            if (matchFound) {
+                if (print) printf("SIGNATURE MATCH\n");   
+                numMatch++;
+            }
+            else if (print) printf("\n");
         }
     }
     closedir(dTarget);
+    printf("numMatch=%d\n\n", numMatch);
     
+    /* PERCENTILE TESTS */
+    // Send rules to calcNPercentileLength to get various percentile lengths
+    int percentile90 = calcNPercentileLength(rules, 90);
+    int percentile100 = calcNPercentileLength(rules, 100);
+    int doubleLongest = percentile100 * 2;
+
+    // Run tests, report results
+    printf("numMatch=%d\n\n", percentileTest(dTarget,
+                                         targetDirToScan,
+                                         percentile90,
+                                         rules,
+                                         print));
+    printf("numMatch=%d\n\n", percentileTest(dTarget,
+                                         targetDirToScan, 
+                                         percentile100, 
+                                         rules, 
+                                         print));
+    printf("numMatch=%d\n\n", percentileTest(dTarget, 
+                                         targetDirToScan,
+                                         doubleLongest, 
+                                         rules, 
+                                         print));
+    
+
+    /************ EXITING ************/
     // Shut down YARA, destroy compiler, and exit
     yr_rules_destroy(rules);
     yr_compiler_destroy(compiler);
     yr_finalize();
-
     exit(0);
+}
+
+
+
+int percentileTest(DIR* dTarget, 
+                   char* targetDirToScan,
+                   int headFootLen,
+                   YR_RULES* rules,
+                   bool print) {
+    struct dirent* targetDir;
+    printf("BEGIN SCAN OF [%d] CHARACTER HEADERS AND FOOTERS:\n", headFootLen);
+    int numMatch = 0;
+    while ((targetDir = readdir(dTarget)) != NULL) {
+        // Run headTailScan on each file (ignore '.' and '..' files)
+        char* dirFilename = targetDir->d_name;
+        if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
+            // reconstruct full filepath to files
+            char fullFilename[256];
+            int success = sprintf(fullFilename, "%s/%s", targetDirToScan, dirFilename);
+            assert(success > -1);  // ensure sprintf succeeded
+            
+            if (print) printf("\tScanning '%s' ..... ", fullFilename);
+            
+            // Scan
+            bool matchFound = headTailScan(fullFilename, rules, headFootLen);
+
+            // Track success/failure of scan
+            if (matchFound) {
+                if (print) printf("SIGNATURE MATCH\n");   
+                numMatch++;
+            }
+            else if (print) printf("\n");
+        }
+    }
+    closedir(dTarget);
+    return numMatch;
 }

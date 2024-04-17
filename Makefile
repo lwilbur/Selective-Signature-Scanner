@@ -8,7 +8,7 @@ testDir  = yara_test_suite
 
 .PHONY : clean test testSuite
 
-$(toolName) : $(mainName).c $(toolName).h $(toolName).c 
+$(toolName) : $(mainName).h $(mainName).c $(toolName).h $(toolName).c
 	gcc -Wall -g -o $(toolName) $(mainName).c $(toolName).c $(header) $(libs)
 
 clean :

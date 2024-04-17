@@ -94,7 +94,6 @@ char* exciseHeadTail(char filename[], int numChars) {
     assert(headTail != NULL);
     
     // Read the first n characters
-    // TODO handle file length <= 2*numChars
     fseek(file, 0, SEEK_SET);
     fread(headTail, 1, numChars, file);
 
@@ -120,7 +119,7 @@ char* exciseHeadTail(char filename[], int numChars) {
 int smartExcise();
 
 
-int buffer_scan_callback(YR_SCAN_CONTEXT* context,
+int scan_callback(YR_SCAN_CONTEXT* context,
                          int message,
                          void* message_data,
                          void* user_data) {
@@ -150,7 +149,7 @@ bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
                       (uint8_t*)scan,         // Buffer to scan
                       scanLen * 2 + 1,        // Buffer length
                       0,                      // Flags
-                      buffer_scan_callback,   // callback -- fxn called by scan
+                      scan_callback,   // callback -- fxn called by scan
                       &matchFound,            // user data -- true if match
                       1000);                  // Timeout
 
@@ -164,5 +163,35 @@ bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
     char* scanBuffer = exciseHeadTail(filename, scanLen);
     bool matchFound = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
     return matchFound;
+}
+
+bool invokeYaraOnFile(char scan[], size_t scanLen, YR_RULES* rules) {
+    // scan the given buffer
+    bool matchFound = false;
+    yr_rules_scan_mem(rules,                  // Rule file
+                      (uint8_t*)scan,         // Buffer to scan
+                      scanLen * 2 + 1,        // Buffer length
+                      0,                      // Flags
+                      scan_callback,          // callback -- fxn called by scan
+                      &matchFound,            // user data -- true if match
+                      1000);                  // Timeout
+
+    // If matchFound has been updated to true, a match was made in scan
+    if (matchFound) return true;
+    return false;
+}
+
+bool fullScan(char filename[], YR_RULES* rules) {
+    bool matchFound = false;
+    yr_rules_scan_file(rules,                 // Rule file
+                       filename,              // name of file to scan
+                       0,                     // Flags
+                       scan_callback,         // callback -- fxn called by scan
+                       &matchFound,           // user data -- true if match
+                       1000);                 // Timeout
+
+    // If matchFound has been updated to true, a match was made in scan
+    if (matchFound) return true;
+    return false;
 }
 

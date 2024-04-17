@@ -41,5 +41,6 @@ int smartExcise();
 bool invokeYaraOnBuffer(char scan[], size_t scan_len, YR_RULES* rules);
 
 bool headTailScan(char filename[], YR_RULES* rules, size_t scan_len);
+bool fullScan(char filename[], YR_RULES* rules);
 
 #endif /*_3S_H*/
