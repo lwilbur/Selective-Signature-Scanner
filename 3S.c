@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <stdbool.h>
 
-bool matchFound = false;  // used by callback fxn
 
 /*
  * Integer comparison function for use with qsort 
@@ -16,6 +15,7 @@ int cmp_int(const void *va, const void *vb)
   int a = *(int *)va, b = *(int *) vb;
   return a < b ? -1 : a > b ? +1 : 0;
 }
+
 
 /*
  * Calculate the number of characters in the n-th percentile longest rule in
@@ -28,35 +28,21 @@ int calcNPercentileLength(YR_RULES* rules, int n) {
     assert(rules != NULL);
     assert(n > 0 && n <= 100);
 
-    /* Determine number of rules */
-    int numRules = 0;
-    // Step through each rule
-    YR_RULE* rule = NULL;
-    yr_rules_foreach(rules, rule) {
-        numRules++;
-    }
-
-    // Ensure that at least one rule exists in the file
+    // Determine number of rules, ensure at least one rule is in the file 
+    int numRules = rules->num_rules;
     assert(numRules > 0);
 
-    /* Sum the lengths of each rule's strings and store them in a list */
-    int lenList[numRules];  
-    memset(lenList, 0, numRules);  // initialize all values to 0
-    
-    int idx = 0;
-    // Step through each rule
-    yr_rules_foreach(rules, rule) {
-        // Step through each string in the rule
-        YR_STRING* string = NULL;
-        yr_rule_strings_foreach(rule, string) {
-            // Sum rule's string lengths
-            lenList[idx] += string->length;
+    // Sum the lengths of each rule's strings and store them in a list 
+    int* lenList = calloc(numRules, sizeof(int));
+    for (int ruleIdx = 0; ruleIdx < numRules; ruleIdx++) {
+        int numStrings = rules->rules_table[ruleIdx].num_atoms;
+        for (int stringIdx = 0; stringIdx < numStrings; stringIdx++) {
+            lenList[ruleIdx] += rules->rules_table[ruleIdx].strings[stringIdx].length;
         }
-        idx++;
     }
 
     // Sort the signature lengths in increasing order
-    qsort(lenList, numRules, sizeof lenList[0], cmp_int);
+    qsort(lenList, numRules, sizeof(lenList[0]), cmp_int);
 
     /* DEBUG
     printf("SORTED LIST OF LENGTHS:\n{ ");
@@ -112,17 +98,19 @@ char* exciseHeadTail(char filename[], int numChars) {
 /*
  * @brief Callback used by yr_rules_scan_xxxx functions
  *
- * Updates global matchFound to true if a match is found. Trusts that
- * caller sets matchFound = false before beginning file scan.
+ * Updates user_data matchFound to true if a match is found.
  */
 int scan_callback(YR_SCAN_CONTEXT* context,
                          int message,
                          void* message_data,
                          void* user_data) {
+    // Avoid unused warnings
+    (void)context;
+    (void)message_data;
 
     // use user_data to track if a match if found
     if (message == CALLBACK_MSG_RULE_MATCHING)
-        matchFound = true;
+        *((bool*)user_data) = true;
 
     return CALLBACK_CONTINUE;
 }
@@ -141,13 +129,13 @@ int scan_callback(YR_SCAN_CONTEXT* context,
  */
 bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
     // scan the given buffer
-    matchFound = false;
+    bool matchFound = false;
     yr_rules_scan_mem(rules,                  // Rule file
                       (uint8_t*)scan,         // Buffer to scan
                       scanLen * 2 + 1,        // Buffer length
                       0,                      // Flags
                       scan_callback,          // callback -- fxn called by scan
-                      NULL,                   // user data
+                      &matchFound,            // user data
                       1000);                  // Timeout
 
     // If matchFound has been updated to true, a match was made in scan
@@ -156,6 +144,9 @@ bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
 }
 
 
+/*
+ * @brief Scan only the head and tail of file filename
+ */
 bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
     char* scanBuffer = exciseHeadTail(filename, scanLen);
     bool match = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
@@ -164,12 +155,12 @@ bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
 
 
 bool fullScan(char filename[], YR_RULES* rules) {
-    matchFound = false;
+    bool matchFound = false;
     yr_rules_scan_file(rules,                 // Rule file
                        filename,              // name of file to scan
                        0,                     // Flags
                        scan_callback,         // callback -- fxn called by scan
-                       NULL,                  // user data
+                       &matchFound,           // user data
                        1000);                 // Timeout
 
     // If matchFound has been updated to true, a match was made in scan
