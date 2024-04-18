@@ -124,13 +124,13 @@ int main(int argc, char* argv[]) {
 
             // Track success/failure of scan
             if (matchFound) {
-                if (print) printf("SIGNATURE MATCH\n");   
                 numMatch++;
+                if (print) printf("SIGNATURE MATCH\n");   
             }
             else if (print) printf("\n");
         }
     }
-    closedir(dTarget);
+    rewinddir(dTarget);
     printf("numMatch=%d\n\n", numMatch);
     
     /* PERCENTILE TESTS */
@@ -145,20 +145,24 @@ int main(int argc, char* argv[]) {
                                          percentile90,
                                          rules,
                                          print));
+    rewinddir(dTarget);
     printf("numMatch=%d\n\n", percentileTest(dTarget,
                                          targetDirToScan, 
                                          percentile100, 
                                          rules, 
                                          print));
+    rewinddir(dTarget);
     printf("numMatch=%d\n\n", percentileTest(dTarget, 
                                          targetDirToScan,
                                          doubleLongest, 
                                          rules, 
                                          print));
+    rewinddir(dTarget);
     
 
     /************ EXITING ************/
     // Shut down YARA, destroy compiler, and exit
+    closedir(dTarget);
     yr_rules_destroy(rules);
     yr_compiler_destroy(compiler);
     yr_finalize();
@@ -191,12 +195,11 @@ int percentileTest(DIR* dTarget,
 
             // Track success/failure of scan
             if (matchFound) {
-                if (print) printf("SIGNATURE MATCH\n");   
                 numMatch++;
+                if (print) printf("SIGNATURE MATCH\n");   
             }
             else if (print) printf("\n");
         }
     }
-    closedir(dTarget);
     return numMatch;
 }
