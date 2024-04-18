@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
     rewinddir(dTarget);
     printf("numMatch=%d\n\n", percentileTest(dTarget, 
                                          targetDirToScan,
-                                         doubleLongest, 
+                                        doubleLongest, 
                                          rules, 
                                          print));
     rewinddir(dTarget);
@@ -203,3 +203,4 @@ int percentileTest(DIR* dTarget,
     }
     return numMatch;
 }
+

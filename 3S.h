@@ -22,14 +22,6 @@ int calcNPercentileLength(YR_RULES* rules, int n);
 char* exciseHeadTail(char filename[], int numChars);
 
 /*
- * @brief Selects sections of a file to search, based on an ML model.
- *
- * Will be implemented once exciseBeginningEnd has been completed and
- * comprehensively tested.
- */
-int smartExcise();
-
-/*
  * @brief Runs Yara on a selected file.
  *
  * Runs Yara on a selected file -- intended for use on a file created by an

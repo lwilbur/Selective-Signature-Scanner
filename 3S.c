@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
+bool matchFound = false;  // used by callback fxn
 
 /*
  * Integer comparison function for use with qsort 
@@ -87,8 +88,6 @@ char* exciseHeadTail(char filename[], int numChars) {
     FILE* file = fopen(filename, "rb");
     assert(file != NULL);
 
-    // TODO: consider whether binary files require a special case
-
     // Allocate memory for the characters
     char* headTail = malloc(numChars * 2 + 2);  // +1 for \0, +1 for \n at EOF
     assert(headTail != NULL);
@@ -111,14 +110,11 @@ char* exciseHeadTail(char filename[], int numChars) {
 
 
 /*
- * @brief Selects sections of a file to search, based on an ML model.
+ * @brief Callback used by yr_rules_scan_xxxx functions
  *
- * Will be implemented once exciseHeadTail has been completed and
- * comprehensively tested.
+ * Updates global matchFound to true if a match is found. Trusts that
+ * caller sets matchFound = false before beginning file scan.
  */
-int smartExcise();
-
-
 int scan_callback(YR_SCAN_CONTEXT* context,
                          int message,
                          void* message_data,
@@ -126,7 +122,7 @@ int scan_callback(YR_SCAN_CONTEXT* context,
 
     // use user_data to track if a match if found
     if (message == CALLBACK_MSG_RULE_MATCHING)
-        *((int*)user_data) = true;
+        matchFound = true;
 
     return CALLBACK_CONTINUE;
 }
@@ -135,22 +131,23 @@ int scan_callback(YR_SCAN_CONTEXT* context,
 /*
  * @brief Runs Yara on a selected buffer.
  *
- * Runs Yara on a selected file -- intended for use on a file created by an
+ * Runs Yara on a selected buffer -- intended for use on a buffer created by an
  * excise function.
  *
- * @param filename string name of file to be scanned
- * @param yaraFile string name of Yara rule file to be used
+ * @param scan buffer to be scanned
+ * @param scanLen length of buffer to be scanned
+ * @param rules YR_RULES* for the group of rules to apply to buffer
  * @return 1 if match, 0 if no match
  */
 bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
     // scan the given buffer
-    bool matchFound = false;
+    matchFound = false;
     yr_rules_scan_mem(rules,                  // Rule file
                       (uint8_t*)scan,         // Buffer to scan
                       scanLen * 2 + 1,        // Buffer length
                       0,                      // Flags
-                      scan_callback,   // callback -- fxn called by scan
-                      &matchFound,            // user data -- true if match
+                      scan_callback,          // callback -- fxn called by scan
+                      NULL,                   // user data
                       1000);                  // Timeout
 
     // If matchFound has been updated to true, a match was made in scan
@@ -161,33 +158,18 @@ bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
 
 bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
     char* scanBuffer = exciseHeadTail(filename, scanLen);
-    bool matchFound = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
-    return matchFound;
+    bool match = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
+    return match;
 }
 
-bool invokeYaraOnFile(char scan[], size_t scanLen, YR_RULES* rules) {
-    // scan the given buffer
-    bool matchFound = false;
-    yr_rules_scan_mem(rules,                  // Rule file
-                      (uint8_t*)scan,         // Buffer to scan
-                      scanLen * 2 + 1,        // Buffer length
-                      0,                      // Flags
-                      scan_callback,          // callback -- fxn called by scan
-                      &matchFound,            // user data -- true if match
-                      1000);                  // Timeout
-
-    // If matchFound has been updated to true, a match was made in scan
-    if (matchFound) return true;
-    return false;
-}
 
 bool fullScan(char filename[], YR_RULES* rules) {
-    bool matchFound = false;
+    matchFound = false;
     yr_rules_scan_file(rules,                 // Rule file
                        filename,              // name of file to scan
                        0,                     // Flags
                        scan_callback,         // callback -- fxn called by scan
-                       &matchFound,           // user data -- true if match
+                       NULL,                  // user data
                        1000);                 // Timeout
 
     // If matchFound has been updated to true, a match was made in scan
