@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
 
     
     /************ RUNNING SCAN TESTS ************/
-    const bool PRINT = false;  // debug print of files as scan progresses
+    const bool PRINT = true;  // debug print of files as scan progresses
     int numMatch;              // track number of matches from each scan 
     double runtime;            // track time taken to run
 

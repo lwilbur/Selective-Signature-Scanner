@@ -74,6 +74,15 @@ char* exciseHeadTail(char filename[], int numChars) {
     FILE* file = fopen(filename, "rb");
     assert(file != NULL);
 
+    // Confirm that file is long enough to accomodate header and footer, and
+    // resize header/footer to be the length of the file at most (accepting
+    // that there will be overlap in the center)
+    fseek(file, 0, SEEK_END);
+    long byteNum = ftell(file);
+    if (byteNum < numChars) {
+        numChars = byteNum - 1;
+    }
+
     // Allocate memory for the characters
     char* headTail = malloc(numChars * 2 + 2);  // +1 for \0, +1 for \n at EOF
     assert(headTail != NULL);
@@ -129,12 +138,12 @@ int scan_callback(YR_SCAN_CONTEXT* context,
  * @param rules YR_RULES* for the group of rules to apply to buffer
  * @return 1 if match, 0 if no match
  */
-bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
+bool invokeYaraOnBuffer(char scan[], size_t buffLen, YR_RULES* rules) {
     // scan the given buffer
     bool matchFound = false;
     yr_rules_scan_mem(rules,                  // Rule file
                       (uint8_t*)scan,         // Buffer to scan
-                      scanLen * 2 + 1,        // Buffer length
+                      buffLen,                // Buffer length
                       0,                      // Flags
                       scan_callback,          // callback -- fxn called by scan
                       &matchFound,            // user data
@@ -151,12 +160,49 @@ bool invokeYaraOnBuffer(char scan[], size_t scanLen, YR_RULES* rules) {
  */
 bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
     char* scanBuffer = exciseHeadTail(filename, scanLen);
-    bool match = invokeYaraOnBuffer(scanBuffer, scanLen, rules);
+    bool match = invokeYaraOnBuffer(scanBuffer, scanLen*2+1, rules);
     return match;
 }
 
 
+/*
+ * @brief Scan the entire file filename into a buffer in memory.
+ *
+ * Trust callee to free the buffer.
+ */
+char* readFullFile(char filename[], long* len) {
+    // Load file as binary
+    FILE* file = fopen(filename, "rb");
+    assert(file != NULL);
+
+    // Get length of file
+    fseek(file, 0, SEEK_END);
+    long numBytes = ftell(file);
+    *(len) = numBytes;
+
+    // Return to start of file, allocate space for file
+    fseek(file, 0, SEEK_SET);
+    char* contents = malloc(numBytes + 1);  // +1 for \0
+    assert(contents != NULL);
+
+    // Save into buffer
+    fread(contents, numBytes, 1, file);
+    fclose(file);
+
+    // Null-terminate and return
+    contents[numBytes] = '\0';
+    return contents;
+}
+
+
+
 bool fullScan(char filename[], YR_RULES* rules) {
+    long numBytes = 0;
+    char* scanBuffer = readFullFile(filename, &numBytes);
+    bool match = invokeYaraOnBuffer(scanBuffer, numBytes, rules);
+    return match;
+
+    /*
     bool matchFound = false;
     yr_rules_scan_file(rules,                 // Rule file
                        filename,              // name of file to scan
@@ -164,9 +210,9 @@ bool fullScan(char filename[], YR_RULES* rules) {
                        scan_callback,         // callback -- fxn called by scan
                        &matchFound,           // user data
                        1000);                 // Timeout
-
     // If matchFound has been updated to true, a match was made in scan
     if (matchFound) return true;
     return false;
+    */
 }
 
