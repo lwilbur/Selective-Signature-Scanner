@@ -161,6 +161,7 @@ bool invokeYaraOnBuffer(char scan[], size_t buffLen, YR_RULES* rules) {
 bool headTailScan(char filename[], YR_RULES* rules, size_t scanLen) {
     char* scanBuffer = exciseHeadTail(filename, scanLen);
     bool match = invokeYaraOnBuffer(scanBuffer, scanLen*2+1, rules);
+    free(scanBuffer);
     return match;
 }
 
@@ -200,6 +201,7 @@ bool fullScan(char filename[], YR_RULES* rules) {
     long numBytes = 0;
     char* scanBuffer = readFullFile(filename, &numBytes);
     bool match = invokeYaraOnBuffer(scanBuffer, numBytes, rules);
+    free(scanBuffer);
     return match;
 
     /*
