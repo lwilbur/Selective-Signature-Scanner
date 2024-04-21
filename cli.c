@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     /************ INPUT VERIFICATION ************/
     // Confirm proper input
     if (argc != 3) {
-        fprintf(stderr, "USAGE: 3S YARA_RULE_FILE TARGET_DIR\n");
+        fprintf(stderr, "USAGE: 3S YARA_RULE_DIR TARGET_DIR\n");
         exit(1);
     }
 
