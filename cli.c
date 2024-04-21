@@ -2,9 +2,14 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 #include "yara.h"
 #include "3S.h"
 #include "cli.h"
+
+/* Globals used to implement user-friendly timer functions */
+clock_t startTime, endTime;
+
 
 int main(int argc, char* argv[]) {
     /************ INPUT VERIFICATION ************/
@@ -80,7 +85,8 @@ int main(int argc, char* argv[]) {
             if (numErrs != 0) {
                 fprintf(stderr,
                         "YARA rule file '%s' processing failed with %d errors. Exiting...\n", 
-                        fullFilename, numErrs);
+                        fullFilename, 
+                        numErrs);
                 exit(1);
             }
 
@@ -88,7 +94,6 @@ int main(int argc, char* argv[]) {
             fclose(yaraRuleFile);
         }
     }
-    fprintf(stderr, "\n");
     closedir(dRule);
 
     // Pull compiled rules from the compiler
@@ -101,15 +106,70 @@ int main(int argc, char* argv[]) {
 
     
     /************ RUNNING SCAN TESTS ************/
-    bool print = true;   // debug print of files as scan progresses
+    const bool PRINT = false;  // debug print of files as scan progresses
+    int numMatch;              // track number of matches from each scan 
+    double runtime;            // track time taken to run
 
     /* FULL FILE TEST */
-    // Loop through each file in given directory
-    struct dirent* targetDir;
-    printf("BEGIN SCAN OF FULL FILES:\n");
+    timerStart();
+    numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
+    runtime = timerEnd();
+    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
+    rewinddir(dTarget);
+    
+    /* PERCENTILE TESTS */
+    // Send rules to calcNPercentileLength to get various percentile lengths
+    int percentile90 = calcNPercentileLength(rules, 90);
+    int percentile100 = calcNPercentileLength(rules, 100);
+    int doubleLongest = percentile100 * 2;
+
+    // Percentile 90 test
+    timerStart();
+    numMatch = percentileTest(dTarget, targetDirToScan, percentile90, rules, PRINT);
+    runtime = timerEnd();
+    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
+    rewinddir(dTarget);
+
+    // Percentile 100 test
+    timerStart();
+    numMatch = percentileTest(dTarget, targetDirToScan, percentile100, rules, PRINT);
+    runtime = timerEnd();
+    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
+    rewinddir(dTarget);
+    
+    // 2x Percentile 100 test
+    timerStart();
+    numMatch = percentileTest(dTarget, 
+                              targetDirToScan, 
+                              doubleLongest, 
+                              rules, 
+                              PRINT);
+    runtime = timerEnd();
+    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
+    rewinddir(dTarget);
+    
+
+    /************ EXITING ************/
+    // Shut down YARA, destroy compiler, and exit
+    closedir(dTarget);
+    yr_rules_destroy(rules);
+    yr_compiler_destroy(compiler);
+    yr_finalize();
+}
+
+int fullFileTest(DIR* dTarget,
+                 char* targetDirToScan,
+                 YR_RULES* rules,
+                 bool print) {
+    if (print) 
+        printf("BEGIN SCAN OF FULL FILES:\n");
+
     int numMatch = 0;
+    struct dirent* targetDir;
+
+    // Loop through each file in given directory
     while ((targetDir = readdir(dTarget)) != NULL) {
-        // Run headTailScan on each file (ignore '.' and '..' files)
+        // Run fullScan on each file (ignore '.' and '..' files)
         char* dirFilename = targetDir->d_name;
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
@@ -130,45 +190,9 @@ int main(int argc, char* argv[]) {
             else if (print) printf("\n");
         }
     }
-    rewinddir(dTarget);
-    printf("numMatch=%d\n\n", numMatch);
-    
-    /* PERCENTILE TESTS */
-    // Send rules to calcNPercentileLength to get various percentile lengths
-    int percentile90 = calcNPercentileLength(rules, 90);
-    int percentile100 = calcNPercentileLength(rules, 100);
-    int doubleLongest = percentile100 * 2;
+    return numMatch;
 
-    // Run tests, report results
-    printf("numMatch=%d\n\n", percentileTest(dTarget,
-                                         targetDirToScan,
-                                         percentile90,
-                                         rules,
-                                         print));
-    rewinddir(dTarget);
-    printf("numMatch=%d\n\n", percentileTest(dTarget,
-                                         targetDirToScan, 
-                                         percentile100, 
-                                         rules, 
-                                         print));
-    rewinddir(dTarget);
-    printf("numMatch=%d\n\n", percentileTest(dTarget, 
-                                         targetDirToScan,
-                                        doubleLongest, 
-                                         rules, 
-                                         print));
-    rewinddir(dTarget);
-    
-
-    /************ EXITING ************/
-    // Shut down YARA, destroy compiler, and exit
-    closedir(dTarget);
-    yr_rules_destroy(rules);
-    yr_compiler_destroy(compiler);
-    yr_finalize();
-    exit(0);
 }
-
 
 
 int percentileTest(DIR* dTarget, 
@@ -176,12 +200,16 @@ int percentileTest(DIR* dTarget,
                    int headFootLen,
                    YR_RULES* rules,
                    bool print) {
-    struct dirent* targetDir;
-    printf("BEGIN SCAN OF [%d] CHARACTER HEADERS AND FOOTERS:\n", headFootLen);
+    if (print)
+        printf("BEGIN SCAN OF [%d] CHARACTER HEADERS AND FOOTERS:\n", headFootLen);
+
     int numMatch = 0;
+    struct dirent* targetDir;
+
     while ((targetDir = readdir(dTarget)) != NULL) {
         // Run headTailScan on each file (ignore '.' and '..' files)
         char* dirFilename = targetDir->d_name;
+
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
             char fullFilename[256];
@@ -204,3 +232,23 @@ int percentileTest(DIR* dTarget,
     return numMatch;
 }
 
+
+void timerStart() {
+    assert(startTime == 0); // Ensure timer isn't already running
+    startTime = clock();
+}
+
+
+double timerEnd() {
+    // Calculate elapsed time
+    assert(startTime != 0); // ensure timer has started
+    endTime = clock();
+    clock_t elapsed = endTime - startTime;
+
+    // Clear old startTime to avoid misuse later
+    startTime = 0;
+
+    // Convert into seconds
+    double seconds = (double)elapsed / CLOCKS_PER_SEC; 
+    return seconds; 
+}
