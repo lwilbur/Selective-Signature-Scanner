@@ -7,6 +7,7 @@
 #include "3S.h"
 #include "cli.h"
 
+
 /* Globals used to implement user-friendly timer functions */
 clock_t startTime, endTime;
 
@@ -95,6 +96,7 @@ int main(int argc, char* argv[]) {
         }
     }
     closedir(dRule);
+    printf("\n\n");  // spacer for later output
 
     // Pull compiled rules from the compiler
     YR_RULES* rules;
@@ -111,43 +113,48 @@ int main(int argc, char* argv[]) {
     double runtime;            // track time taken to run
 
     /* FULL FILE TEST */
+    printf("Full File:\n");
     timerStart();
     numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
     runtime = timerEnd();
-    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
+    printf("\truntime=%f\n\tnumMatch=%d\n\n", runtime, numMatch);
     rewinddir(dTarget);
     
     /* PERCENTILE TESTS */
     // Send rules to calcNPercentileLength to get various percentile lengths
-    int percentile90 = calcNPercentileLength(rules, 90);
+    const int numTests = 6;
+
     int percentile100 = calcNPercentileLength(rules, 100);
-    int doubleLongest = percentile100 * 2;
-
-    // Percentile 90 test
-    timerStart();
-    numMatch = percentileTest(dTarget, targetDirToScan, percentile90, rules, PRINT);
-    runtime = timerEnd();
-    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
-    rewinddir(dTarget);
-
-    // Percentile 100 test
-    timerStart();
-    numMatch = percentileTest(dTarget, targetDirToScan, percentile100, rules, PRINT);
-    runtime = timerEnd();
-    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
-    rewinddir(dTarget);
+    int lengths[] = {calcNPercentileLength(rules, 90), // 90th %ile
+                     percentile100,                    // 100th %ile
+                     (int)(percentile100 * 1.25),      // 100th * 1.25
+                     (int)(percentile100 * 1.5),       // 100th * 1.50
+                     (int)(percentile100 * 1.75),      // 100th * 1.75
+                     percentile100 * 2};               // 100th * 2
     
-    // 2x Percentile 100 test
-    timerStart();
-    numMatch = percentileTest(dTarget, 
-                              targetDirToScan, 
-                              doubleLongest, 
-                              rules, 
-                              PRINT);
-    runtime = timerEnd();
-    printf("runtime=%f, numMatch=%d\n\n", runtime, numMatch);
-    rewinddir(dTarget);
-    
+    char labels[][64] = {"90th Percentile:",
+                         "100th percentile",
+                         "1.25 x 100th percentile",
+                         "1.5 x 100th percentile",
+                         "1.75 x 100th percentile",
+                         "2 x 100th percentile"};
+
+    // Test each length 
+    for (int i = 0; i < numTests; i++) {
+        // Readout for user, begin timer
+        printf("%s\n", labels[i]);  // Readout
+        timerStart();
+
+        // Run tests, report results
+        numMatch = percentileTest(dTarget, targetDirToScan, lengths[i], rules, PRINT);
+        runtime = timerEnd();
+        printf("\truntime      = %f seconds\n", runtime);
+        printf("\t# of matches = %d\n\n", numMatch);
+
+        // Reset for next run
+        rewinddir(dTarget);
+    }
+
 
     /************ EXITING ************/
     // Shut down YARA, destroy compiler, and exit
@@ -155,7 +162,9 @@ int main(int argc, char* argv[]) {
     yr_rules_destroy(rules);
     yr_compiler_destroy(compiler);
     yr_finalize();
+    return 0;
 }
+
 
 int fullFileTest(DIR* dTarget,
                  char* targetDirToScan,
@@ -191,7 +200,6 @@ int fullFileTest(DIR* dTarget,
         }
     }
     return numMatch;
-
 }
 
 
@@ -252,3 +260,4 @@ double timerEnd() {
     double seconds = (double)elapsed / CLOCKS_PER_SEC; 
     return seconds; 
 }
+
