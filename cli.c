@@ -117,7 +117,8 @@ int main(int argc, char* argv[]) {
     timerStart();
     numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
     runtime = timerEnd();
-    printf("\truntime=%f\n\tnumMatch=%d\n\n", runtime, numMatch);
+    printf("\truntime      = %f seconds\n", runtime);
+    printf("\t# of matches = %d\n\n", numMatch);
     rewinddir(dTarget);
     
     /* PERCENTILE TESTS */

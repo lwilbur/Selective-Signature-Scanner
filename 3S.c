@@ -90,7 +90,9 @@ char* exciseHeadTail(char filename[], int numChars) {
 
     // DEBUG 
     // printf("%d head/tail characters: %s\n", numChars, headTail);
-
+    
+    // Close file and exit
+    fclose(file);
     return headTail;
 }
 
