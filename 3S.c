@@ -54,7 +54,9 @@ int calcNPercentileLength(YR_RULES* rules, int n) {
     // Calculate and return the 90th percentile
     double percent = (double)n / 100;
     int nPercentileIdx = ceil(percent * numRules) - 1;
-    return lenList[nPercentileIdx];
+    int numChars = lenList[nPercentileIdx];
+    free(lenList);
+    return numChars;
 }
 
 
