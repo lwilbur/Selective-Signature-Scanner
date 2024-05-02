@@ -29,14 +29,16 @@ int main(int argc, char* argv[]) {
     DIR* dRule;
     dRule = opendir(ruleDirToScan);
     if (dRule == NULL) {
-        fprintf(stderr, "Rule directory access failed. Exiting...\n");
+        fprintf(stderr, "Rule directory <%s> access failed. Exiting...\n",
+                ruleDirToScan);
         exit(1);
     }
 
     DIR* dTarget;
     dTarget = opendir(targetDirToScan);
     if (dTarget == NULL) {
-        fprintf(stderr, "Target directory access failed. Exiting...\n");
+        fprintf(stderr, "Target directory <%s> access failed. Exiting...\n",
+                targetDirToScan);
         exit(1);
     }
     
@@ -85,7 +87,7 @@ int main(int argc, char* argv[]) {
                                                fullFilename);
             if (numErrs != 0) {
                 fprintf(stderr,
-                        "YARA rule file '%s' processing failed with %d errors. Exiting...\n", 
+                        "YARA rule file '%s' processing failed with %d errors. Exiting...\n",
                         fullFilename, 
                         numErrs);
                 exit(1);
@@ -139,8 +141,8 @@ int main(int argc, char* argv[]) {
     timerStart();
     numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
     runtime = timerEnd();
-    printf("\t# of matches = %d\n\n", numMatch);
-    printf("\truntime      = %f seconds\n", runtime);
+    printf("\t# of matches = %d\n", numMatch);
+    printf("\truntime      = %f seconds\n\n", runtime);
     rewinddir(dTarget);
 
 
