@@ -2,16 +2,16 @@
 # NOTE: head -q does not exist on Mac OS -- use linux
 
 # Lengths
-len_90_perc=413
-len_100_perc=500
-len_1pt25x100=625
-len_1pt5x100=750
-len_1pt75x100=875
-len_2x100=1000
-len_2pt25x100=1125
-len_2pt5x100=1250
-len_2pt75x100=1375
-len_3x100=1500
+len_90_perc=500
+len_100_perc=855
+len_1pt25x100=1068
+len_1pt5x100=1282
+len_1pt75x100=1496
+len_2x100=1710
+len_2pt25x100=1923
+len_2pt5x100=2137
+len_2pt75x100=2351
+len_3x100=2565
 len=($len_90_perc\
      $len_100_perc\
      $len_1pt25x100\
