@@ -108,22 +108,18 @@ int main(int argc, char* argv[]) {
 
     
     /************ RUNNING SCAN TESTS ************/
-    const bool PRINT = true;  // debug print of files as scan progresses
+    const bool PRINT = false;  // debug print of files as scan progresses
     int numMatch;              // track number of matches from each scan 
     double runtime;            // track time taken to run
 
-    /* FULL FILE TEST */
-    printf("Full File:\n");
-    timerStart();
-    numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
-    runtime = timerEnd();
-    printf("\truntime      = %f seconds\n", runtime);
-    printf("\t# of matches = %d\n\n", numMatch);
-    rewinddir(dTarget);
-    
-    /* PERCENTILE TESTS */
     // Send rules to calcNPercentileLength to get various percentile lengths
     const int numTests = 6;
+    char labels[][64] = {"90th Percentile:",
+                         "100th percentile",
+                         "1.25 x 100th percentile",
+                         "1.5 x 100th percentile",
+                         "1.75 x 100th percentile",
+                         "2 x 100th percentile"};
 
     int percentile100 = calcNPercentileLength(rules, 100);
     int lengths[] = {calcNPercentileLength(rules, 90), // 90th %ile
@@ -132,29 +128,20 @@ int main(int argc, char* argv[]) {
                      (int)(percentile100 * 1.5),       // 100th * 1.50
                      (int)(percentile100 * 1.75),      // 100th * 1.75
                      percentile100 * 2};               // 100th * 2
-    
-    char labels[][64] = {"90th Percentile:",
-                         "100th percentile",
-                         "1.25 x 100th percentile",
-                         "1.5 x 100th percentile",
-                         "1.75 x 100th percentile",
-                         "2 x 100th percentile"};
 
-    // Test each length 
+    printf("\tPercentiles:\n");
     for (int i = 0; i < numTests; i++) {
-        // Readout for user, begin timer
-        printf("%s\n", labels[i]);  // Readout
-        timerStart();
-
-        // Run tests, report results
-        numMatch = percentileTest(dTarget, targetDirToScan, lengths[i], rules, PRINT);
-        runtime = timerEnd();
-        printf("\truntime      = %f seconds\n", runtime);
-        printf("\t# of matches = %d\n\n", numMatch);
-
-        // Reset for next run
-        rewinddir(dTarget);
+        printf("\t\t%s: %d\n", labels[i], lengths[i]);
     }
+    printf("\n\n");
+
+    /* FILE TEST */
+    timerStart();
+    numMatch = fullFileTest(dTarget, targetDirToScan, rules, PRINT);
+    runtime = timerEnd();
+    printf("\t# of matches = %d\n\n", numMatch);
+    printf("\truntime      = %f seconds\n", runtime);
+    rewinddir(dTarget);
 
 
     /************ EXITING ************/
