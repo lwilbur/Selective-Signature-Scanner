@@ -12,11 +12,15 @@ dirs += [f"mw_uzip_{m}x100_perc".replace(".", "pt") for m in multipliers]
 results_file = open("results", "w+")
 
 # Run on full files
+results_file.write("========== FULL FILE ==========\n")
+results_file.flush()
 run(["./3S", "test_set/YARA_rules", "test_set/malware_unzipped"],
     stdout=results_file)
 
 # Run on head&tail files
 for directory in dirs:
+    results_file.write(f"========== {directory[8:]} ==========\n")
+    results_file.flush()
     run(["./3S", "test_set/YARA_rules", f"test_set/mw_uzip_head_tail/{directory}"],
         stdout=results_file)
 
