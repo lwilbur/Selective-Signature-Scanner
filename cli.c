@@ -61,7 +61,9 @@ int main(int argc, char* argv[]) {
     /************ LOAD RULE FILES ************/
     /* Read directory of rule files into YARA compiler */
     // Loop through each rule file in given directory
-    printf("BEGIN READING OF RULE FILES\n");
+    const bool RULE_PRINT = false;  // debug toggle for printing
+    if (RULE_PRINT) printf("READING OF RULE FILES\n");
+
     struct dirent* ruleDir;
     while ((ruleDir = readdir(dRule)) != NULL) {
         char* dirFilename = ruleDir->d_name;
@@ -70,7 +72,9 @@ int main(int argc, char* argv[]) {
             char fullFilename[256];
             int success = sprintf(fullFilename, "%s/%s", ruleDirToScan, dirFilename);
             assert(success > -1);  // ensure sprintf succeeded
-            printf("\tReading rule file '%s'\n", fullFilename);
+
+            // Toggle for printing
+            if (RULE_PRINT) printf("\tReading rule file '%s'\n", fullFilename);
             
             // Attempt to open the file
             FILE* yaraRuleFile = fopen(fullFilename, "r");
@@ -98,7 +102,7 @@ int main(int argc, char* argv[]) {
         }
     }
     closedir(dRule);
-    printf("\n\n");  // spacer for later output
+    if (RULE_PRINT)  printf("\n");  // spacer for later output
 
     // Pull compiled rules from the compiler
     YR_RULES* rules;
@@ -116,7 +120,7 @@ int main(int argc, char* argv[]) {
 
     // Send rules to calcNPercentileLength to get various percentile lengths
     const int numTests = 6;
-    char labels[][64] = {"90th Percentile:",
+    char labels[][64] = {"90th Percentile",
                          "100th percentile",
                          "1.25 x 100th percentile",
                          "1.5 x 100th percentile",
@@ -135,7 +139,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < numTests; i++) {
         printf("\t\t%s: %d\n", labels[i], lengths[i]);
     }
-    printf("\n\n");
+    printf("\n");
 
     /* FILE TEST */
     timerStart();
