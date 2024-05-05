@@ -16,15 +16,29 @@ int main(int argc, char* argv[]) {
     /************ INPUT VERIFICATION ************/
     // Confirm proper input
     if (argc != 3) {
-        fprintf(stderr, "USAGE: 3S YARA_RULE_DIR TARGET_DIR\n");
+        fprintf(stderr, "USAGE: 3S -p YARA_RULE_DIR\n");
+        fprintf(stderr, "   OR: 3S YARA_RULE_DIR TARGET_DIR\n");
         exit(1);
     }
 
-    // Load arguments
-    char* ruleDirToScan   = argv[1];
-    char* targetDirToScan = argv[2];
+    // Check whether percentile flag is on
+    const int PERC_FLAG = strcmp(argv[1], "-p");
+    printf("PERC_FLAG = %d\n", PERC_FLAG);
 
-    // Load rule directory and target directory from arguments
+    // Load arguments
+    char* ruleDirToScan;
+    char* targetDirToScan;
+
+    if (PERC_FLAG == 0) {
+        ruleDirToScan   = argv[2];
+        targetDirToScan = NULL;
+    }
+    else {
+        ruleDirToScan   = argv[1];
+        targetDirToScan = argv[2];
+    }
+
+    // Load rule directory from arguments
     // code derived from stackoverflow.com/questions/4204666
     DIR* dRule;
     dRule = opendir(ruleDirToScan);
@@ -34,12 +48,15 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    // Load target directory from arguments (only if no -p switch)
     DIR* dTarget;
-    dTarget = opendir(targetDirToScan);
-    if (dTarget == NULL) {
-        fprintf(stderr, "Target directory <%s> access failed. Exiting...\n",
-                targetDirToScan);
-        exit(1);
+    if (PERC_FLAG != 0) {
+        dTarget = opendir(targetDirToScan);
+        if (dTarget == NULL) {
+            fprintf(stderr, "Target directory <%s> access failed. Exiting...\n",
+                    targetDirToScan);
+            exit(1);
+        }
     }
     
     // Start YARA
@@ -70,8 +87,8 @@ int main(int argc, char* argv[]) {
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to file
             char fullFilename[256];
-            int success = sprintf(fullFilename, "%s/%s", ruleDirToScan, dirFilename);
-            assert(success > -1);  // ensure sprintf succeeded
+            int success = snprintf(fullFilename, 256, "%s/%s", ruleDirToScan, dirFilename);
+            assert(success > -1);  // ensure snprintf succeeded
 
             // Toggle for printing
             if (RULE_PRINT) printf("\tReading rule file '%s'\n", fullFilename);
@@ -112,34 +129,24 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+
+    /************ PRINTING PERCENTILES FOR "-p" ************/
+    // If "-p" switch, just calculate and print percentiles, then exit
+    if (PERC_FLAG == 0) {
+        int perc90 = calcNPercentileLength(rules, 90);
+        int perc100 = calcNPercentileLength(rules, 100);
+
+        printf("Rule Length Stats:\n");
+        printf("\t90th Percentile: %d\n\t100th Percentile: %d\n",
+               perc90,
+               perc100);
+        return 0;
+    }
     
     /************ RUNNING SCAN TESTS ************/
     const bool PRINT = false;  // debug print of files as scan progresses
     int numMatch;              // track number of matches from each scan 
     double runtime;            // track time taken to run
-
-    // Send rules to calcNPercentileLength to get various percentile lengths
-    const int numTests = 6;
-    char labels[][64] = {"90th Percentile",
-                         "100th percentile",
-                         "1.25 x 100th percentile",
-                         "1.5 x 100th percentile",
-                         "1.75 x 100th percentile",
-                         "2 x 100th percentile"};
-
-    int percentile100 = calcNPercentileLength(rules, 100);
-    int lengths[] = {calcNPercentileLength(rules, 90), // 90th %ile
-                     percentile100,                    // 100th %ile
-                     (int)(percentile100 * 1.25),      // 100th * 1.25
-                     (int)(percentile100 * 1.5),       // 100th * 1.50
-                     (int)(percentile100 * 1.75),      // 100th * 1.75
-                     percentile100 * 2};               // 100th * 2
-
-    printf("\tPercentiles:\n");
-    for (int i = 0; i < numTests; i++) {
-        printf("\t\t%s: %d\n", labels[i], lengths[i]);
-    }
-    printf("\n");
 
     /* FILE TEST */
     timerStart();
@@ -148,7 +155,6 @@ int main(int argc, char* argv[]) {
     printf("\t# of matches = %d\n", numMatch);
     printf("\truntime      = %f seconds\n\n", runtime);
     rewinddir(dTarget);
-
 
     /************ EXITING ************/
     // Shut down YARA, destroy compiler, and exit
@@ -177,8 +183,8 @@ int fullFileTest(DIR* dTarget,
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
             char fullFilename[256];
-            int success = sprintf(fullFilename, "%s/%s", targetDirToScan, dirFilename);
-            assert(success > -1);  // ensure sprintf succeeded
+            int success = snprintf(fullFilename, 256, "%s/%s", targetDirToScan, dirFilename);
+            assert(success > -1);  // ensure snprintf succeeded
 
             if (print) printf("\tScanning '%s' ..... ", fullFilename);
             
@@ -215,8 +221,8 @@ int percentileTest(DIR* dTarget,
         if (strcmp(dirFilename, ".") && strcmp(dirFilename, "..")) {
             // reconstruct full filepath to files
             char fullFilename[256];
-            int success = sprintf(fullFilename, "%s/%s", targetDirToScan, dirFilename);
-            assert(success > -1);  // ensure sprintf succeeded
+            int success = snprintf(fullFilename, 256, "%s/%s", targetDirToScan, dirFilename);
+            assert(success > -1);  // ensure snprintf succeeded
             
             if (print) printf("\tScanning '%s' ..... ", fullFilename);
             
