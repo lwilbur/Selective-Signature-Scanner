@@ -23,7 +23,6 @@ int main(int argc, char* argv[]) {
 
     // Check whether percentile flag is on
     const int PERC_FLAG = strcmp(argv[1], "-p");
-    printf("PERC_FLAG = %d\n", PERC_FLAG);
 
     // Load arguments
     char* ruleDirToScan;

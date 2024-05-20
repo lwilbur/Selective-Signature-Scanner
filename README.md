@@ -20,13 +20,14 @@ The Selective Signature Scanner ("3S") selectively scans portions of files suspe
 ### Setup 
 1. Ensure that you [have YARA downloaded and installed](https://yara.readthedocs.io/en/stable/gettingstarted.html), including its optional crypto libraries.
 2. In `Makefile`, update `header` and `libs` to accomodate the location of YARA on your system.
-3. Run `3S -p test_set/YARA_rules` to have 3S calculate the 90th and 100th percentile lengths of the YARA rule test set.
-4. In `test_set/make_head_tail_files.py`, set `perc90` and `perc100` to the values calculated in step 3.
+3. Run `make`.
+4. Run `./3S -p ./test_set/YARA_rules` to have 3S calculate the 90th and 100th percentile lengths of the YARA rule test set.
+5. In `test_set/make_head_tail_files.py`, set `perc90` and `perc100` to the values calculated in step 3.
 
 ### Dataset Creation
-1. Run `python3 test_set/get_malware_by_hash.py`. This downloads zipped malware samples from [YARAify](https://yaraify.abuse.ch/).
+1. Run `python3 ./test_set/get_malware_by_hash.py`. This downloads zipped malware samples from [YARAify](https://yaraify.abuse.ch/).
 2. Run `./test_set/unzip_malware.sh`. This unzips the downloaded samples.
-3. Run `./test_set/make_head_tail_files.py`. This creates the head and tail files which will be scanned by 3S to get our results.
+3. Run `python3 ./test_set/make_head_tail_files.py`. This creates the head and tail files which will be scanned by 3S to get our results.
 
 ### Result Collection
 1. Run `python3 calc_results.py` to test our dataset of YARA rules against each length of header and footer file, using 3S. Results from this run are collated into a `results` file.
